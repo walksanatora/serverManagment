@@ -5,14 +5,17 @@ import pickle
 
 import docker
 
+import markdown, os, glob
+
 import random
 import string
 
 srvKey = ''.join(random.choice(string.ascii_letters) for i in range(20))
-
-with open('data.pickle', 'rb') as p:
-    data = pickle.load(p)
-
+try:
+    with open('data.pickle', 'rb') as p:
+        data = pickle.load(p)
+except FileNotFoundError:
+    data = {}
 if not 'key' in data:
     data['key'] = ''.join(random.choice(string.ascii_letters) for i in range(20))
 
@@ -22,7 +25,6 @@ parser.add_argument('--debug','-d',action='store_true', help='enables debug logg
 parser.add_argument('--key', '-k',action='store',default=data['key'], help='sets acess key')
 parser.add_argument('--host', action='store',default='0.0.0.0',help='set host ip')
 parser.add_argument('--port','-p', action='store',default='8181',help='sets hostport')
-
 
 def save(d):
     with open('data.pickle', 'wb') as p:
@@ -59,7 +61,7 @@ import servLIB
 save(data)
 
 import flask
-from flask import request
+from flask import request, url_for
 app = flask.Flask(__name__)
 
 @app.route('/server', methods=['POST'])
@@ -105,5 +107,37 @@ def api(index,func):
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
     
     return(fun(**request.headers))
+
+@app.route('/docs/<path:page>')
+def documentation(page):
+    with open(f'docs/{page}.md', 'r') as doc:
+        html = markdown.markdown(doc.read())
+        url = str.split(page,'/')
+        code = '<h1>Navigation</h1><p><a href="/docs/index">index</a>&gt;'
+        uri = ""
+        if not page == 'index':
+            for v in url:
+                print(v)
+                code = code + f"<a href=\"/docs{uri}/{v}\">{v}</a>&gt;"
+                uri = uri + '/' + v
+            code = code + '</p> <p>'
+            path = os.getcwd()
+            print(f'{path}/docs{uri}/*')
+            li = glob.glob(f'{path}/docs{uri}/*')
+            subpages = []
+            for v in li:
+                if v.startswith('_'):
+                    continue
+                parsed = v.split('/')
+                parsed = parsed[len(parsed)-1]
+                subpages.append(parsed[:-3])
+            for page in subpages:
+                code = code + f'<a href="/docs{uri}/{page}">{page}</a>'
+            print(li)
+        else:
+            code = ''
+        css = f'<link rel= "stylesheet" type= "text/css" href= "{url_for("static",filename="docs.css") }">'
+       
+        return css + code + html, 200
 
 app.run(argv.host,argv.port,debug=argv.debug)

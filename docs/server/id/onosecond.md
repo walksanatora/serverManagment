@@ -1,12 +1,16 @@
 # The onosecond endpoint
 
+full path: /server/<id\>/onosecond
+
 ## request types and responses
 
 - ANY
 
-inputs:     `authToken` - the server auth token
+inputs:     headers
 
 outputs:    all headers passed in json form
 
-status:     `200` - endpoint worked
-            `403` - invalid authToken
+status:     
+`200` - endpoint worked
+
+`403` - invalid authToken

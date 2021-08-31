@@ -117,12 +117,10 @@ def documentation(page):
         uri = ""
         if not page == 'index':
             for v in url:
-                print(v)
                 code = code + f"<a href=\"/docs{uri}/{v}\">{v}</a>&gt;"
                 uri = uri + '/' + v
             code = code + '</p> <p>'
             path = os.getcwd()
-            print(f'{path}/docs{uri}/*')
             li = glob.glob(f'{path}/docs{uri}/*')
             subpages = []
             for v in li:

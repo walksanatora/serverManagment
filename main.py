@@ -105,8 +105,8 @@ def api(index,func):
             fun = getattr(fun,i)
     except AttributeError:
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
-    
-    return(fun(**request.headers))
+    out = fun(**request.headers)
+    return out, out['status']
 
 @app.route('/docs/<path:page>')
 def documentation(page):

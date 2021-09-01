@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import pickle
+import json
 
 import docker
 
@@ -74,7 +75,7 @@ def construct():
         logging.debug('missing auth token')
         return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
     try:
-        opt = request.headers['opt']
+        opt = json.loads(request.headers['opt'])
     except KeyError:
         opt = {}
     if 'key' in request.headers:

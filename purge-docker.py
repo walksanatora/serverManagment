@@ -25,4 +25,3 @@ if purgeImages:
         dock.images.remove(i.id)
 else:
     print('not purging images')
-print(de)

@@ -28,7 +28,7 @@ name = input('input server name (blank for random): ')
 if name == '':
 	name = "".join(random.choice(string.ascii_letters) for i in range(20)) 
 
-jso = json.loads(requests.post("http://localhost:8181/server",headers={'authToken': auth}).content)
+jso = json.loads(requests.post("http://localhost:8181/server",headers={'authToken': auth,'opt': json.dumps({'name': name})}).content)
 
 
 serverToken = jso['output']['key']

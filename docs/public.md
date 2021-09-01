@@ -1,5 +1,4 @@
-# The id endpoint
-
+# The public endpoint
 
 full path: /public
 ## request types and responses

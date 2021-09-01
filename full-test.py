@@ -1,10 +1,7 @@
-from os import stat_result
 import requests
 import json
 import random
 import string
-
-from requests.api import head
 
 def rep(end,token,id,**kwargs):
 	print('\ncalling endpoint:', end)

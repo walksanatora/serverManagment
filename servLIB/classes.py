@@ -1,11 +1,8 @@
 import json
-import os
 import docker
 from docker.types import Mount
-import logging
-import hashlib
-import random
-import string
+import logging, hashlib
+import random, string
 
 logging.getLogger(docker.__name__).setLevel(logging.WARNING)
 

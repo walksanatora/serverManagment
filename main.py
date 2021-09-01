@@ -1,17 +1,10 @@
 #!/usr/bin/env python3.9
 import argparse, hashlib
 import pickle, json
-
-import docker
-from docker.types import Mount
-dock = docker.from_env()
-
-contImage=False
-for img in dock.images.list():
-    pass
-
 import markdown, os, glob
 import random, string
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s - %(levelname)s] %(message)s',force=True)
 
 srvKey = ''.join(random.choice(string.ascii_letters) for i in range(20))
 try:
@@ -22,39 +15,54 @@ except FileNotFoundError:
 if not 'key' in data:
     data['key'] = ''.join(random.choice(string.ascii_letters) for i in range(20))
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug','-d',action='store_true', help='enables debug logging')
 parser.add_argument('--key', '-k',action='store',default=data['key'], help='sets acess key')
 parser.add_argument('--host', action='store',default='0.0.0.0',help='set host ip')
 parser.add_argument('--port','-p', action='store',default='8181',help='sets hostport')
 
-def save(d):
-    with open('data.pickle', 'wb') as p:
-        pickle.dump(d,p)
-
 global argv 
 argv = parser.parse_args()
 
 if 'key' in argv:
     data['key'] = argv.key
-
 if not 'servers' in data:
     data['servers'] = []
 
 sK = argv.key
-
-import logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s - %(levelname)s] %(message)s',force=True)
-
 srvKeyHash = hashlib.sha256(sK.encode()).digest()
 
 if argv.debug:
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s-%(levelname)s] %(message)s',force=True)
     logging.debug('debug logging enabled')
 
+import docker
+from docker.types import Mount
 logging.getLogger(docker.__name__).setLevel(logging.WARNING)
+dock = docker.from_env()
 
+contImage=False
+for img in dock.images.list():
+    if img.attrs['RepoTags'] == ['cont:latest']:
+        contImage = True
+
+if not contImage:
+    print('missing docker container "cont:latest"')
+    exit
+
+pubVol=True
+for vol in dock.volumes.list():
+    logging.debug(vol.name)
+    if vol.name == 'publicData':
+        logging.debug('publicData Volume located')
+        pubVOL = False
+if pubVol:
+    dock.volumes.create('publicData')
+    logging.info('created publicData docker volume')
+
+def save(d):
+    with open('data.pickle', 'wb') as p:
+        pickle.dump(d,p)
 
 logging.info(f'your key is: {sK}')
 

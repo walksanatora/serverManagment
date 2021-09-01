@@ -31,11 +31,10 @@ class server:
         return {'failed': False,'status':200,'output': {'state': self.state},'message': 'server state'}
     
     def setState(self,**kwargs):
-        self.state = kwargs['State']
+        self.state = int(kwargs['State'])
         return {'failed': False,'status':200,'output': {'state': self.state},'message': 'server state updated'}
     
     def lsFiles(self,**kwargs):
-        print(kwargs)
         mnt = Mount('/mnt/data',f'{self.name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
         while cont.status == 'running': pass
@@ -45,7 +44,6 @@ class server:
     
 
     def getFile(self,**kwargs):
-        print(kwargs)
         mnt = Mount('/mnt/data',f'{self.name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/data/{kwargs["File"]}', 'SILENT': '1'})
         while cont.status == 'running': pass
@@ -54,7 +52,6 @@ class server:
         return {'failed': False,'status':200,'output': {'content': logs, 'file': kwargs['File']},'message': 'file send'}
     
     def putFile(self,**kwargs):
-        print(kwargs)
         mnt = Mount('/mnt/data',f'{self.name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {kwargs["Data"]} | tee /mnt/data/{kwargs["File"]}'})
         while cont.status == 'running': pass

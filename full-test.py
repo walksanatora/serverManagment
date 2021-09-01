@@ -7,7 +7,7 @@ import string
 from requests.api import head
 
 def rep(end,token,id,**kwargs):
-	print('\n\ncalling endpoint:', end)
+	print('\ncalling endpoint:', end)
 	headers = kwargs
 	headers['authToken'] = token
 	print('headers: ', headers)

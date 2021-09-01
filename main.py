@@ -1,15 +1,17 @@
 #!/usr/bin/env python3.9
-import argparse
-import hashlib
-import pickle
-import json
+import argparse, hashlib
+import pickle, json
 
 import docker
+from docker.types import Mount
+dock = docker.from_env()
+
+contImage=False
+for img in dock.images.list():
+    pass
 
 import markdown, os, glob
-
-import random
-import string
+import random, string
 
 srvKey = ''.join(random.choice(string.ascii_letters) for i in range(20))
 try:
@@ -66,7 +68,7 @@ from flask import request, url_for
 app = flask.Flask(__name__)
 
 @app.route('/server', methods=['POST'])
-def construct():
+def server():
     if 'authToken' in request.headers:
         if not (hashlib.sha256(request.headers['authToken'].encode()).digest() == srvKeyHash):
             logging.debug('invalid auth token')
@@ -87,6 +89,30 @@ def construct():
     logging.debug(data)
     save(data)
     return {'status': 200, 'message': 'created server', 'failed': False,'output': {'key': key,'id': len(data['servers'])-1}},200
+
+@app.route('/server/<index>', methods=['GET','DELETE'])
+def basic(index):
+    ind = []
+    try:
+        ind = data['servers'][int(index)]
+    except IndexError:
+        return {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
+    if ind == None:
+        return {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
+
+    if 'authToken' in request.headers:
+        if not ind.checkKey(request.headers['authToken']):
+            logging.debug('invalid auth token')
+            return {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403
+    else:
+        logging.debug('missing auth token')
+        return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
+    
+    if request.method == 'GET':
+        return {'status': 200, 'message': 'server dump', 'failed': False, 'output': {'dump': json.dumps(ind)}}, 200
+    elif request.method == 'DELETE':
+        data['servers'][int(index)] = None
+        return {'failed': False,'status': 200,'message': 'server deleted','output': {}}, 200
 
 @app.route('/server/<index>/<path:func>')
 def api(index,func):
@@ -113,6 +139,41 @@ def api(index,func):
     out = fun(**request.headers)
     return out, out['status']
 
+@app.route('/public/<cmd>')
+def publicVOL(cmd):
+    if 'authToken' in request.headers:
+        if not (hashlib.sha256(request.headers['authToken'].encode()).digest() == srvKeyHash):
+            logging.debug('invalid auth token')
+            return {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403
+    else:
+        logging.debug('missing auth token')
+        return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
+    
+    if not cmd in ['getFile','putFile','lsFiles']:
+        return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
+    kwargs = request.headers
+    if cmd == 'getFile':
+        mnt = Mount('/mnt/public',f'publicData',type='volume')
+        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/public/{kwargs["File"]}', 'SILENT': '1'})
+        while cont.status == 'running': pass
+        logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
+        cont.remove(force=True)
+        return {'failed': False,'status':200,'output': {'content': logs, 'file': kwargs['File']},'message': 'file send'}, 200
+    elif cmd == 'putFile':
+        mnt = Mount('/mnt/data','publicData',type='volume')
+        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {kwargs["Data"]} | tee /mnt/data/{kwargs["File"]}'})
+        while cont.status == 'running': pass
+        contents = cont.logs(stdout=True,stderr=True).decode('UTF-8')
+        return {'failed': False,'status':200,'output': {'contents': contents, 'file': kwargs['File']},'message': 'file recieved'}
+    elif cmd == 'lsFiles':
+        mnt = Mount('/mnt/data','publicData',type='volume')
+        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
+        while cont.status == 'running': pass
+        logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
+        cont.remove(force=True)
+        return {'failed': False,'status':200,'output': {'Folder': json.loads(logs) },'message': 'all files'}
+
+
 @app.route('/docs/<path:page>')
 def documentation(page):
     with open(f'docs/{page}.md', 'r') as doc:
@@ -135,7 +196,7 @@ def documentation(page):
                 parsed = parsed[len(parsed)-1]
                 subpages.append(parsed[:-3])
             for page in subpages:
-                code = code + f'<a href="/docs{uri}/{page}">{page}</a>'
+                code = code + f'<a href="/docs{uri}/{page}">{page}</a> '
             print(li)
         else:
             code = ''

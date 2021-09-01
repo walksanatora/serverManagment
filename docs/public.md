@@ -1,6 +1,7 @@
 # The id endpoint
 
-full path: /server/<id\>
+
+full path: /public
 ## request types and responses
 
 all endpoints after this point will have the following statuses and headers<br>
@@ -11,5 +12,4 @@ status:
 `403` - invalid `authToken`<br>
 `404` - endpoint not found
 
-upon a `GET` request to this endpoint a full server dump will be created <br>
-upon a `DELETE` request to this endpoint this specified server will be deleted
+upon a `GET` request to this endpoint a full dump of the public volume will be created <br>

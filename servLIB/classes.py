@@ -61,4 +61,6 @@ class server:
         contents = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         return {'failed': False,'status':200,'output': {'contents': contents, 'file': kwargs['File']},'message': 'file recieved'}
     
+    def getName(self,**kwargs):
+        return {'failed': False,'status':200,'output': {'name': self.name},'message': 'server name'}
     

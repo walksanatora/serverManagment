@@ -1,6 +1,8 @@
 from os import stat_result
 import requests
 import json
+import random
+import string
 
 from requests.api import head
 
@@ -21,7 +23,14 @@ def rep(end,token,id,**kwargs):
 
 auth = input('AuthToken: ')
 
+name = input('input server name (blank for random): ')
+
+if name == '':
+	name = "".join(random.choice(string.ascii_letters) for i in range(20)) 
+
 jso = json.loads(requests.post("http://localhost:8181/server",headers={'authToken': auth}).content)
+
+
 serverToken = jso['output']['key']
 serverID = jso['output']['id']
 print(jso)
@@ -31,3 +40,4 @@ rep('setState',serverToken,serverID,state='1')
 rep('lsFiles',serverToken,serverID)
 rep('putFile',serverToken,serverID,data='FILECONTENTSGOBRR',file='testFile')
 rep('getFile',serverToken,serverID,file='testFile')
+rep('getName',serverToken,serverID)

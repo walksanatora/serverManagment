@@ -73,12 +73,16 @@ def construct():
     else:
         logging.debug('missing auth token')
         return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
+    try:
+        opt = request.headers['opt']
+    except KeyError:
+        opt = {}
     if 'key' in request.headers:
         key = request.headers['key']
-        data['servers'].append(servLIB.server(request.headers['key']))
+        data['servers'].append(servLIB.server(request.headers['key'],**opt))
     else:
         key = ''.join(random.choice(string.ascii_letters) for i in range(20))
-        data['servers'].append(servLIB.server(key))
+        data['servers'].append(servLIB.server(key,**opt))
     logging.debug(data)
     save(data)
     return {'status': 200, 'message': 'created server', 'failed': False,'output': {'key': key,'id': len(data['servers'])-1}},200

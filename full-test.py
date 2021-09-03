@@ -1,6 +1,14 @@
 import pickle, json
 import inspect
 
+import random, string
+name = "".join(random.choice(string.ascii_letters) for i in range(20))
+
+namei = input('server name?: ')
+if namei != '':
+	print('setting name')
+	name = namei
+
 import requests
 
 with open('data.pickle', 'rb') as f:
@@ -13,7 +21,7 @@ from servLIB import classes
 
 failedEndpoint = []
 
-i = json.loads(requests.post('http://localhost:8181/server',headers={'authToken': auth}).content)
+i = json.loads(requests.post('http://localhost:8181/server',headers={'authToken': auth,'opt': json.dumps({'Name': name})}).content)
 
 out = i['output']
 
@@ -29,7 +37,7 @@ for i in d:
 			hasKwarg = False
 			Params = inspect.signature(attr).parameters
 			args = []
-			print(i,list(Params), list(Params)[1:])
+			print(f'firing: {i}')
 			for arg in list(Params)[1:]:
 				targ = Params[arg]
 				if targ.kind == targ.VAR_KEYWORD:
@@ -43,7 +51,7 @@ for i in d:
 				head['authToken'] = sauth
 				req = requests.get(f'http://localhost:8181/server/{sid}/{i}',headers=head)
 				if req.status_code == 200:
-					print(json.loads(req.content))
+					print(json.loads(req.content),'\n')
 				else: failedEndpoint.append([i,req.content])
 
 print('the following endpoints failed :(')

@@ -2,9 +2,9 @@ import docker
 dock = docker.from_env()
 for i in dock.containers.list(all=True):
     if i.status == 'running':
-        print("container ", i.id, " not killing")
+        print("container ", i.short_id, i.name, " not killing")
     else:
-        print("container ", i.id, " deleting")
+        print("container ", i.short_id, i.name, " deleting")
         i.remove(force=True)
 
 for i in dock.volumes.list():

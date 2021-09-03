@@ -1,6 +1,12 @@
+py = 'python3.9'
+
 clean: data docker
 
+full-test:
+	${py} full-test.py
+
 data:
-	python3.8 clearData.py
+	${py} clearData.py
+
 docker:
-	python3.8 purge-docker.py
+	${py} purge-docker.py

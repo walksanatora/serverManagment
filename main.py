@@ -21,8 +21,8 @@ parser.add_argument('--key', '-k',action='store',default=data['key'], help='sets
 parser.add_argument('--host', action='store',default='0.0.0.0',help='set host ip')
 parser.add_argument('--port','-p', action='store',default='8181',help='sets hostport')
 
-global argv 
-argv = parser.parse_args()
+global argv
+argv, other = parser.parse_known_args()
 
 if 'key' in argv:
     data['key'] = argv.key
@@ -35,6 +35,8 @@ srvKeyHash = hashlib.sha256(sK.encode()).digest()
 if argv.debug:
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s-%(levelname)s] %(message)s',force=True)
     logging.debug('debug logging enabled')
+
+logging.debug(f'argv: {argv}, other: {other}')
 
 import docker
 from docker.types import Mount
@@ -99,7 +101,7 @@ def server():
     return {'status': 200, 'message': 'created server', 'failed': False,'output': {'key': key,'id': len(data['servers'])-1}},200
 
 @app.route('/server/<index>', methods=['GET','DELETE'])
-def basic(index):
+def remove(index):
     ind = []
     try:
         ind = data['servers'][int(index)]
@@ -117,9 +119,10 @@ def basic(index):
         return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
     
     if request.method == 'GET':
-        return {'status': 200, 'message': 'server dump', 'failed': False, 'output': {'dump': json.dumps(ind)}}, 200
+        return {'status': 200, 'message': 'server dump', 'failed': False, 'output': {'dump': ind.__dict__()}}, 200
     elif request.method == 'DELETE':
         data['servers'][int(index)] = None
+        save(data)
         return {'failed': False,'status': 200,'message': 'server deleted','output': {}}, 200
 
 @app.route('/server/<index>/<path:func>')
@@ -180,7 +183,6 @@ def publicVOL(cmd):
         logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)
         return {'failed': False,'status':200,'output': {'Folder': json.loads(logs) },'message': 'all files'}
-
 
 @app.route('/docs/<path:page>')
 def documentation(page):

@@ -1,40 +1,50 @@
+import pickle, json
+import inspect
+
 import requests
-import json
-import random
-import string
 
-def rep(end,token,id,**kwargs):
-	print('\ncalling endpoint:', end)
-	headers = kwargs
-	headers['authToken'] = token
-	print('headers: ', headers)
-	con = requests.get(f'http://localhost:8181/server/{id}/{end}',headers=headers)
-	print('statusCode: ', con.status_code)
-	if con.status_code == 200:
-		data = json.loads(con.content)
-		print(data['message'])
-		print(data['output'])
-		print(data)
-		return data
-	return None
+with open('data.pickle', 'rb') as f:
+	auth = pickle.load(f)['key']
 
-auth = input('AuthToken: ')
+def exampleFunc():
+	pass
 
-name = input('input server name (blank for random): ')
+from servLIB import classes
 
-if name == '':
-	name = "".join(random.choice(string.ascii_letters) for i in range(20)) 
+failedEndpoint = []
 
-jso = json.loads(requests.post("http://localhost:8181/server",headers={'authToken': auth,'opt': json.dumps({'name': name})}).content)
+i = json.loads(requests.post('http://localhost:8181/server',headers={'authToken': auth}).content)
 
+out = i['output']
 
-serverToken = jso['output']['key']
-serverID = jso['output']['id']
-print(jso)
+sid = out['id']
+sauth = out['key']
 
-rep('getState',serverToken,serverID)
-rep('setState',serverToken,serverID,state='1')
-rep('lsFiles',serverToken,serverID)
-rep('putFile',serverToken,serverID,data='FILECONTENTSGOBRR',file='testFile')
-rep('getFile',serverToken,serverID,file='testFile')
-rep('getName',serverToken,serverID)
+d = dir(classes.server)
+d.reverse()
+for i in d:
+	if not i.startswith('_'):
+		attr = getattr(classes.server,i)
+		if inspect.isfunction(attr):
+			hasKwarg = False
+			Params = inspect.signature(attr).parameters
+			args = []
+			print(i,list(Params), list(Params)[1:])
+			for arg in list(Params)[1:]:
+				targ = Params[arg]
+				if targ.kind == targ.VAR_KEYWORD:
+					hasKwarg = True
+				else:
+					args.append(arg)
+			if hasKwarg:
+				head = {}
+				for arg in args:
+					head[arg]=input(f'need a value for {arg}: ')
+				head['authToken'] = sauth
+				req = requests.get(f'http://localhost:8181/server/{sid}/{i}',headers=head)
+				if req.status_code == 200:
+					print(json.loads(req.content))
+				else: failedEndpoint.append([i,req.content])
+
+print('the following endpoints failed :(')
+print(failedEndpoint)

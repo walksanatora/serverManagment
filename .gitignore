@@ -2,4 +2,4 @@
 *.cpython-38.pyc
 *.cpython-39.pyc
 data.pickle
-log_server.txt
+log_servers.txt

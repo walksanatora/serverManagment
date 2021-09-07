@@ -57,10 +57,10 @@ for vol in dock.volumes.list():
     logging.debug(vol.name)
     if vol.name == 'publicData':
         logging.debug('publicData Volume located')
-        pubVOL = False
+        pubVol = False
 if pubVol:
     dock.volumes.create('publicData')
-    logging.info('created publicData docker volume')
+    logging.info(f'created publicData docker volume {pubVol}')
 
 def save(d):
     with open('data.pickle', 'wb') as p:

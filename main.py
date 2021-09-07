@@ -90,6 +90,13 @@ def server():
         opt = json.loads(request.headers['opt'])
     except KeyError:
         opt = {}
+
+    if opt['Name']:
+        for i in data['servers']:
+            if i.Name == opt['Name']:
+                logging.debug("attempted server creation with duplicate name")
+                return {'status': '400', 'message': '400 bad request. server name allready exist', 'failed': True}, 400
+    
     if 'key' in request.headers:
         key = request.headers['key']
         data['servers'].append(servLIB.server(request.headers['key'],**opt))

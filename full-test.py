@@ -37,8 +37,13 @@ class test:
 from servLIB import classes
 
 failedEndpoint = []
+re = requests.post('http://localhost:8181/server',headers={'authToken': auth,'opt': json.dumps({'Name': name})})
 
-i = json.loads(requests.post('http://localhost:8181/server',headers={'authToken': auth,'opt': json.dumps({'Name': name})}).content)
+i = json.loads(re.content)
+
+if re.status_code != 200:
+	print("ohno it failed message: '{}'".format(i['message']))
+	exit()
 
 out = i['output']
 sauth = out['key']
@@ -67,6 +72,8 @@ for i in d:
 					head[arg]=input(f'need a value for {arg}: ')
 				head['authToken'] = sauth
 				tst.append(test(args=head,url=f'http://localhost:8181/server/{id}/{i}'))
+
+
 heada = {}
 heada['authToken'] = auth
 heada['File'] = "test.txt"
@@ -74,15 +81,28 @@ heada['Data'] = "foobar___owo"
 tst.append(test(args=heada,url="http://localhost:8181/public/lsFiles"))
 tst.append(test(args=heada,url="http://localhost:8181/public/putFile"))
 tst.append(test(args=heada,url="http://localhost:8181/public/getFile"))
+
+
 for i in tst:
 	i.run()
 	print(f"uri: {i.url} \nstatus: {i.status} \nargs: {i.args} \noutput: {i.output}\n\n")
 	if i.status != 200:
 		failedEndpoint.append(i)
 
-with open('log_servers.txt', 'a') as log:
-	log.write(f'sid: {id} key: {sauth}\n')
+de = str.lower(input('delete server?: ')).strip()
+delsrv = False
+if de in ['yes','y','1','true']:
+    delsrv = True
 
-print('the following endpoints failed :(')
+if delsrv:
+	print("writing server key/id to file")
+	with open('log_servers.txt', 'a') as log:
+		log.write(f'sid: {id} key: {sauth}\n')
+else:
+	print("deleting server")
+	d = test(args={'authToken': sauth},url=f'http://localhost:8181/server/{id}').run()
+	print(f"uri: {d.url} \nstatus: {d.status} \nargs: {d.args} \noutput: {d.output}\n\n")
+
+print('the following endpoints failed: ')
 for i in failedEndpoint:
 	print(i.url)

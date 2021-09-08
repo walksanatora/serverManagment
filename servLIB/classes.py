@@ -14,7 +14,7 @@ class server:
     Name: str = "".join(random.choice(string.ascii_letters) for i in range(20))
     Startup: str = 'echo HelloWorld'
     Env: dict = {}
-    Image: str = 'cont'
+    Image: str = 'alpine-srv'
 
     def __init__(self, Key, **kwargs):
         logging.debug(f'Key: {Key}, Kwargs: {kwargs}')

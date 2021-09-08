@@ -20,8 +20,8 @@ if de in ['yes','y','1','true']:
 
 if purgeImages:
     print('purging images')
-    for i in dock.images.list():
+    for i in dock.images.list(all=True):
         print('image ', f"{i.labels}", 'removing')
-        dock.images.remove(i.id)
+        dock.images.remove(i.id, force=True)
 else:
     print('not purging images')

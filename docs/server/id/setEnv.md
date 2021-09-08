@@ -3,9 +3,9 @@
 full path: /server/<id\>/setEnv
 ## request types and responses
 
-headers:
-`Key`: str - the key that will be set
-`Value`: str - the value that will be set
+headers:<br>
+`Key`: str - the key that will be set<br>
+`Value`: str - the value that will be set<br>
 
 status:     
 `200` - request finished successfully <br>

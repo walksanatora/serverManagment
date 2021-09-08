@@ -48,7 +48,7 @@ for img in dock.images.list():
     if img.attrs['RepoTags'] == ['cont:latest']:
         contImage = True
 if not contImage:
-    print('missing docker container "cont:latest"')
+    logging.error('missing docker container "cont:latest"')
     exit()
 
 pubVol=True
@@ -216,7 +216,6 @@ def documentation(page):
                 subpages.append(parsed[:-3])
             for page in subpages:
                 code = code + f'<a href="/docs{uri}/{page}">{page}</a> '
-            print(li)
         else:
             code = ''
         css = f'<link rel= "stylesheet" type= "text/css" href= "{url_for("static",filename="docs.css") }">'

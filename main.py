@@ -93,6 +93,7 @@ def server():
 
     if opt['Name']:
         for i in data['servers']:
+            if i == None: continue
             if i.Name == opt['Name']:
                 logging.debug("attempted server creation with duplicate name")
                 return {'status': '400', 'message': '400 bad request. server name allready exist', 'failed': True}, 400
@@ -169,6 +170,7 @@ def publicVOL(cmd):
     
     if not cmd in ['getFile','putFile','lsFiles']:
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
+    
     kwargs = request.headers
     if cmd == 'getFile':
         mnt = Mount('/mnt/public',f'publicData',type='volume')
@@ -182,6 +184,7 @@ def publicVOL(cmd):
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {kwargs["Data"]} | tee /mnt/data/{kwargs["File"]}'})
         while cont.status == 'running': pass
         contents = cont.logs(stdout=True,stderr=True).decode('UTF-8')
+        cont.remove(force=True)
         return {'failed': False,'status':200,'output': {'contents': contents, 'file': kwargs['File']},'message': 'file recieved'}
     elif cmd == 'lsFiles':
         mnt = Mount('/mnt/data','publicData',type='volume')
@@ -189,7 +192,7 @@ def publicVOL(cmd):
         while cont.status == 'running': pass
         logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)
-        return {'failed': False,'status':200,'output': {'Folder': json.loads(logs) },'message': 'all files'}
+        return {'failed': False,'status':200,'output': {'Folder': logs },'message': 'all files'}
 
 @app.route('/docs/<path:page>')
 def documentation(page):

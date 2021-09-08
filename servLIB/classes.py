@@ -29,15 +29,24 @@ class server:
         return False
     
     def getState(self,**kwargs):
+        """
+        gets the server state
+        """
         return {'failed': False,'status':200,'output': {'state': self.State},'message': 'server state'}
     
     def setState(self,State,**kwargs):
-        try: int(State)
+        """
+        sets the server state
+        """
+        try: int(State) #make sure it can be a int
         except ValueError: return {'failed': True,'status': 400, 'message': f'{State} is not a valid int'}
         self.State = int(State)
         return {'failed': False,'status':200,'output': {'state': self.State},'message': 'server state updated'}
     
     def lsFiles(self,**kwargs):
+        """
+        list files that are inside the server Volume
+        """
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
         while cont.status == 'running': pass
@@ -47,13 +56,19 @@ class server:
     
 
     def getFile(self,File,**kwargs):
+        """
+        extract a file from the container
+        """
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/data/{File}', 'SILENT': '1'})
-        while cont.status == 'running': pass
-        logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
-        cont.remove(force=True)
-        return {'failed': False,'status':200,'output': {'content': logs, 'file': File},'message': 'file send'}
-    
+        exi = cont.wait()
+        if exi == 1:
+            logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
+            cont.remove(force=True)
+            return {'failed': False,'status':200,'output': {'content': logs, 'file': File},'message': 'file send'}
+        else:
+            cont.remove(force=True)
+            return {'failed': True,'status': 400,'message': "file doesen't exist"}
     def putFile(self,File,Data,**kwargs):
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {Data} | tee /mnt/data/{File}'})

@@ -2,7 +2,7 @@ py = 'python3.9'
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 current_dir := $(dir $(mkfile_path))
 
-clean: data docker
+clean: RMdata RMdocker
 
 image:
 	@docker build -t 'cont' ${current_dir}/container
@@ -13,10 +13,10 @@ list:
 full-test:
 	${py} full-test.py
 
-data:
+RMdata:
 	${py} clearData.py
 
-docker:
+RMdocker:
 	${py} purge-docker.py
 
 run:

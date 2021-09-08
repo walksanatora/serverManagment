@@ -54,7 +54,6 @@ class server:
         cont.remove(force=True)
         return {'failed': False,'status':200,'output': {'Folder': logs },'message': 'all files'}
     
-
     def getFile(self,File,**kwargs):
         """
         extract a file from the container
@@ -62,13 +61,14 @@ class server:
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/data/{File}', 'SILENT': '1'})
         exi = cont.wait()
-        if exi == 1:
+        if exi['StatusCode'] == 0:
             logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
             cont.remove(force=True)
             return {'failed': False,'status':200,'output': {'content': logs, 'file': File},'message': 'file send'}
         else:
             cont.remove(force=True)
-            return {'failed': True,'status': 400,'message': "file doesen't exist"}
+            return {'failed': True,'status': 400,'message': "ls exited with code {}"}
+    
     def putFile(self,File,Data,**kwargs):
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {Data} | tee /mnt/data/{File}'})

@@ -14,6 +14,7 @@ class server:
     Name: str = "".join(random.choice(string.ascii_letters) for i in range(20))
     Startup: str = 'echo HelloWorld'
     Env: dict = {}
+    Image: str = 'cont'
 
     def __init__(self, Key, **kwargs):
         logging.debug(f'Key: {Key}, Kwargs: {kwargs}')
@@ -22,7 +23,7 @@ class server:
             setattr(self,i,kwargs[i])
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         publicVOL = Mount('/mnt/public',f'publicData',type='volume')
-        d = dock.containers.run('cont',environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
+        d = dock.containers.run(self.Image,environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
         while d.status == 'running': logging.debug('awaiting container exit')
         self.containerID = d.id
         self.HashedKey = hashlib.sha256(Key.encode()).digest()
@@ -36,7 +37,7 @@ class server:
             logging.debug("creating container")
             mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
             publicVOL = Mount('/mnt/public',f'publicData',type='volume')
-            cont = dock.containers.run('cont',environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
+            cont = dock.containers.run(self.Image,environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
         return cont
 
     def checkKey(self, key):
@@ -110,6 +111,7 @@ class server:
     
     def setEnv(self,Key,Value,**kwargs):
         tmp = self.Env
+        if type(tmp) != type({}): tmp = {}
         tmp[Key] = Value
         self.Env = tmp
         return {'failed': False, 'status': 200,'message': 'set env','output': {'Key': Key,'Value': self.Env[Key]}}

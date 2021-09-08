@@ -6,4 +6,4 @@ full path: /public/lsFiles
 status:     
 `200` - request finished successfully <br>
 
-upon a `*` request to this endpoint, will return json via `tree -J /mnt/data`
+upon a `*` request to this endpoint, will return json via `tree -J /mnt/public`

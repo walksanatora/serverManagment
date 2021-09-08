@@ -94,13 +94,14 @@ delsrv = False
 if de in ['yes','y','1','true']:
     delsrv = True
 
-if delsrv:
+if not delsrv:
 	print("writing server key/id to file")
 	with open('log_servers.txt', 'a') as log:
 		log.write(f'sid: {id} key: {sauth}\n')
 else:
 	print("deleting server")
-	d = test(args={'authToken': sauth},url=f'http://localhost:8181/server/{id}').run()
+	d = test(args={'authToken': sauth},url=f'http://localhost:8181/server/{id}', method='DELETE')
+	d.run()
 	print(f"uri: {d.url} \nstatus: {d.status} \nargs: {d.args} \noutput: {d.output}\n\n")
 
 print('the following endpoints failed: ')

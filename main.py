@@ -47,10 +47,9 @@ contImage=False
 for img in dock.images.list():
     if img.attrs['RepoTags'] == ['cont:latest']:
         contImage = True
-
 if not contImage:
     print('missing docker container "cont:latest"')
-    exit
+    exit()
 
 pubVol=True
 for vol in dock.volumes.list():

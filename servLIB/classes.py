@@ -4,12 +4,16 @@ from docker.types import Mount
 import logging, hashlib
 import random, string
 
+
+
 dock = docker.from_env()
 
 class server:
     HashedKey: str = ''
     State: int = 0
     Name: str = "".join(random.choice(string.ascii_letters) for i in range(20))
+    Startup: str = 'echo HelloWorld'
+    Env: dict = {}
 
     def __init__(self, Key, **kwargs):
         logging.debug(f'Key: {Key}, Kwargs: {kwargs}')
@@ -22,6 +26,18 @@ class server:
         while d.status == 'running': logging.debug('awaiting container exit')
         self.containerID = d.id
         self.HashedKey = hashlib.sha256(Key.encode()).digest()
+    
+    def __getContainer__(self) -> docker.models.containers.Container:
+        cont: None
+        for container in dock.containers.list(all=True):
+            if container.name == self.Name:
+                cont = container
+        if cont == None:
+            logging.debug("creating container")
+            mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
+            publicVOL = Mount('/mnt/public',f'publicData',type='volume')
+            cont = dock.containers.run('cont',environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
+        return cont
 
     def checkKey(self, key):
         if hashlib.sha256(key.encode()).digest() == self.HashedKey:
@@ -80,3 +96,23 @@ class server:
     def getName(self,**kwargs):
         return {'failed': False,'status':200,'output': {'name': self.Name},'message': 'server name'}
     
+    def getLogs(self,**kwargs):
+        cont = self.__getContainer__()
+        logging.debug('located container')
+        return {'failed': False, 'status': 200, 'message': 'container logs', 'output': {'logs': cont.logs(stdout=True,stderr=True).decode('UTF-8')}}
+
+    def setStartup(self,Startup,**kwargs):
+        self.Startup = Startup
+        return {'failed': False, 'status': 200,'message': 'set startup cmd','output': {'Startup': self.Startup}}
+    
+    def getStartup(self,**kwargs):
+        return {'failed': False, 'status': 200,'message': 'get startup cmd','output': {'Startup': self.Startup}}
+    
+    def setEnv(self,Key,Value,**kwargs):
+        tmp = self.Env
+        tmp[Key] = Value
+        self.Env = tmp
+        return {'failed': False, 'status': 200,'message': 'set env','output': {'Key': Key,'Value': self.Env[Key]}}
+    
+    def getEnv(self,**kwargs):
+        return {'failed': False, 'status': 200,'message': 'set env','output': {'env': self.Env}}

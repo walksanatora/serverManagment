@@ -1,22 +1,20 @@
 # The server endpoint
 
+full path: /server
 ## states
 each server has various states it can bein and here they are explained
 
-0 - uninitilazed, blank server with nothing installed
-
-1 - initiliazed, server has software installed
-
-2 - starting, server is in the process of starting up
-
-3 - running, server is currently active (various new endpoints become avaliable)
-
+0 - uninitilazed, blank server with nothing installed<br>
+1 - initiliazed, server has software installed<br>
+2 - starting, server is in the process of starting up<br>
+3 - running, server is currently active (various new endpoints become avaliable)<br>
 4 - stopping, server is in the process of shutting down
 
 
 ## internal server values
 `Name`: str - the server name (cannot be changed)<br>
-`State`: int - server state (see above)
+`State`: int - server state (see above)<br>
+`Startup`: str - server startup command
 
 ## request types and responses
 

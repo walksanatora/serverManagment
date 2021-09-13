@@ -4,9 +4,19 @@ from docker.types import Mount
 import logging, hashlib
 import random, string
 
-
-
 dock = docker.from_env()
+
+contImage=False
+containerName: str = ''
+for img in dock.images.list():
+        logging.debug(img.attrs['RepoTags'][0])
+        if '-srv' in img.attrs['RepoTags'][0]:
+            contImage=True
+            if containerName == '':
+                containerName = img.attrs['RepoTags']
+if not contImage:
+    logging.error('no image that has the -srv in it\'s name')
+    exit()
 
 class server:
     HashedKey: str = ''
@@ -14,7 +24,7 @@ class server:
     Name: str = "".join(random.choice(string.ascii_letters) for i in range(20))
     Startup: str = 'echo HelloWorld'
     Env: dict = {}
-    Image: str = 'alpine-srv'
+    Image: str = containerName
 
     def __init__(self, Key, **kwargs):
         logging.debug(f'Key: {Key}, Kwargs: {kwargs}')
@@ -65,7 +75,7 @@ class server:
         list files that are inside the server Volume
         """
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
         while cont.status == 'running': pass
         logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)
@@ -76,7 +86,7 @@ class server:
         extract a file from the container
         """
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/data/{File}', 'SILENT': '1'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/data/{File}', 'SILENT': '1'})
         exi = cont.wait()
         if exi['StatusCode'] == 0:
             logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
@@ -88,7 +98,7 @@ class server:
     
     def putFile(self,File,Data,**kwargs):
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {Data} | tee /mnt/data/{File}'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'echo {Data} | tee /mnt/data/{File}'})
         while cont.status == 'running': pass
         contents = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)

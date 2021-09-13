@@ -3,7 +3,7 @@ import argparse, hashlib
 import pickle, json
 import markdown, os, glob
 import random, string
-import logging
+import logging, inspect
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s - %(levelname)s] %(message)s',force=True)
 
 srvKey = ''.join(random.choice(string.ascii_letters) for i in range(20))
@@ -44,11 +44,15 @@ logging.getLogger(docker.__name__).setLevel(logging.WARNING)
 dock = docker.from_env()
 
 contImage=False
+containerName: str = ''
 for img in dock.images.list():
-    if img.attrs['RepoTags'] == ['cont:latest']:
-        contImage = True
+        logging.debug(img.attrs['RepoTags'][0])
+        if '-srv' in img.attrs['RepoTags'][0]:
+            contImage=True
+            if containerName == '':
+                containerName = img.attrs['RepoTags']
 if not contImage:
-    logging.error('missing docker container "cont:latest"')
+    logging.error('no image that has the -srv in it\'s name')
     exit()
 
 pubVol=True
@@ -154,8 +158,19 @@ def api(index,func):
             fun = getattr(fun,i)
     except AttributeError:
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
-    out = fun(**request.headers)
-    return out, out['status']
+    hasKwarg = False
+    Params = inspect.signature(func).parameters
+    args = []
+    logging.debug(f'firing: {i}')
+    for arg in list(Params)[1:]:
+        targ = Params[arg]
+        if targ.kind == targ.VAR_KEYWORD:
+            hasKwarg = True
+        else:
+            args.append(arg)
+    if hasKwarg:
+        out = fun(**request.headers)
+        return out, out['status']
 
 @app.route('/public/<cmd>')
 def publicVOL(cmd):
@@ -173,21 +188,21 @@ def publicVOL(cmd):
     kwargs = request.headers
     if cmd == 'getFile':
         mnt = Mount('/mnt/public',f'publicData',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/public/{kwargs["File"]}', 'SILENT': '1'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'cat /mnt/public/{kwargs["File"]}', 'SILENT': '1'})
         while cont.status == 'running': pass
         logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)
         return {'failed': False,'status':200,'output': {'content': logs, 'file': kwargs['File']},'message': 'file send'}, 200
     elif cmd == 'putFile':
         mnt = Mount('/mnt/data','publicData',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'echo {kwargs["Data"]} | tee /mnt/data/{kwargs["File"]}'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'echo {kwargs["Data"]} | tee /mnt/data/{kwargs["File"]}'})
         while cont.status == 'running': pass
         contents = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)
         return {'failed': False,'status':200,'output': {'contents': contents, 'file': kwargs['File']},'message': 'file recieved'}
     elif cmd == 'lsFiles':
         mnt = Mount('/mnt/data','publicData',type='volume')
-        cont = dock.containers.run('cont',detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
+        cont = dock.containers.run(containerName,detach=True,mounts=[mnt],environment={'STARTUP': f'tree -J /mnt/data', 'SILENT': '1'})
         while cont.status == 'running': pass
         logs = cont.logs(stdout=True,stderr=True).decode('UTF-8')
         cont.remove(force=True)

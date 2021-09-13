@@ -5,7 +5,7 @@ current_dir := $(dir $(mkfile_path))
 clean: RMdata RMdocker
 
 image:
-	@docker build -t 'cont' ${current_dir}/container
+	@cd container && $(MAKE) all
 
 list:
 	@grep '^[^#[:space:]].*:' makefile

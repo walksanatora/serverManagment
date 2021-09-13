@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.9
 import argparse, hashlib
-import pickle, json
+import pickle, json, traceback
 import markdown, os, glob
 import random, string
 import logging, inspect
@@ -158,6 +158,7 @@ def api(index,func):
             fun = getattr(fun,i)
     except AttributeError:
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
+    
     hasKwarg = False
     Params = inspect.signature(func).parameters
     args = []
@@ -169,8 +170,13 @@ def api(index,func):
         else:
             args.append(arg)
     if hasKwarg:
-        out = fun(**request.headers)
-        return out, out['status']
+        try:
+            out = fun(**request.headers)
+            return out, out['status']
+        except Exception as exc:
+            return {'failed': True,'status': 500,'message': 'unhandled exception', 'output':{'exc': json.dumps(traceback.format_exc())}}
+    else:
+        return {'failed': True,'status': 500, 'message': 'endpoint exist as a function but is cannot be executed due to missing **kwargs'}, 500
 
 @app.route('/public/<cmd>')
 def publicVOL(cmd):

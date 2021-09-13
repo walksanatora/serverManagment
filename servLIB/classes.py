@@ -24,6 +24,7 @@ class server:
     Name: str = "".join(random.choice(string.ascii_letters) for i in range(20))
     Startup: str = 'echo HelloWorld'
     Env: dict = {}
+    Ports: dict = {}
     Image: str = containerName
 
     def __init__(self, Key, **kwargs):
@@ -47,7 +48,9 @@ class server:
             logging.debug("creating container")
             mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
             publicVOL = Mount('/mnt/public',f'publicData',type='volume')
-            cont = dock.containers.run(self.Image,environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
+            env = self.Env
+            env.startup = 'exit'
+            cont = dock.containers.run(self.Image,environment=env, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}',ports=self.Ports)
         return cont
 
     def checkKey(self, key):
@@ -128,3 +131,37 @@ class server:
     
     def getEnv(self,**kwargs):
         return {'failed': False, 'status': 200,'message': 'set env','output': {'env': self.Env}}
+    
+    def lsPorts(self,**kwargs):
+        return {'failed': False, 'status': 200,'message': 'port fowards (Host: container)','output': {'ports': self.Ports}}
+    
+    def setPort(self,HostPort,ContPort,**kwargs):
+        self.Ports[ContPort] = HostPort
+        return {'failed': False, 'status': 200,'message': 'set port foward','output': {'HostPort': HostPort, 'ContPort': ContPort}}
+
+    def delPort(self,ContPort,**kwargs):
+        self.Ports.pop(ContPort)
+        return {'failed': False, 'status': 200,'message': 'removed port foward','output': {'ContPort': ContPort}}
+    
+    def startServer(self,**kwargs):
+        cont = self.__getContainer__()
+        if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'server is allready running'}
+        env = self.Env
+        env['STARTUP'] = self.Startup
+        cont.exec_run(detach=True,environment=env)
+        return {'failed': False,'status':200,'message':'starting server','output':{}}
+
+    def stopServer(self,**kwargs):
+        cont = self.__getContainer__()
+        if cont.status == 'running':
+            cont.kill()
+            return {'failed': False,'status':200,'message':'server killed/stopping','output':{}}
+        else:
+            return {'failed': True,'status':500,'message':'server isn\'t running'}
+    
+    def reloadContainer(self,**kwargs):
+        cont = self.__getContainer__()
+        if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'container is running, cannot reload'}
+        cont.remove(force=True)
+        cont = self.__getContainer__()
+        return {'failed': False,'status': 200,'message': 'container reset','output': {}}

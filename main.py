@@ -27,7 +27,7 @@ argv, other = parser.parse_known_args()
 if 'key' in argv:
     data['key'] = argv.key
 if not 'servers' in data:
-    data['servers'] = []
+    data['servers'] = {}
 
 sK = argv.key
 srvKeyHash = hashlib.sha256(sK.encode()).digest()
@@ -46,11 +46,12 @@ dock = docker.from_env()
 contImage=False
 containerName: str = ''
 for img in dock.images.list():
-        logging.debug(img.attrs['RepoTags'][0])
-        if '-srv' in img.attrs['RepoTags'][0]:
-            contImage=True
-            if containerName == '':
-                containerName = img.attrs['RepoTags']
+    try: logging.debug(img.attrs['RepoTags'][0])
+    except IndexError: continue 
+    if '-srv' in img.attrs['RepoTags'][0]:
+        contImage=True
+        if containerName == '':
+            containerName = img.attrs['RepoTags']
 if not contImage:
     logging.error('no image that has the -srv in it\'s name')
     exit()
@@ -80,6 +81,26 @@ import flask
 from flask import request, url_for
 app = flask.Flask(__name__)
 
+def getSrv(index) -> servLIB.classes.server:
+    try:
+        ind = data['servers'][index]
+    except:
+        for i in data['servers']:
+            if i.Name == index:
+                ind = i
+    if ind == None:
+        return False, {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
+    if 'authToken' in request.headers:
+        print(hashlib.sha256(request.headers['authToken'].encode()).digest())
+        print(ind.HashedKey)
+        if not ind.checkKey(request.headers['authToken']):
+            logging.debug('invalid auth token')
+            return False, {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403
+    else:
+        logging.debug('missing auth token')
+        return False, {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
+    return True, ind
+
 @app.route('/server', methods=['POST'])
 def server():
     if 'authToken' in request.headers:
@@ -95,64 +116,43 @@ def server():
         opt = {}
 
     if opt['Name']:
-        for i in data['servers']:
+        for i in data['servers'].keys():
             if i == None: continue
-            if i.Name == opt['Name']:
+            if data['servers'][i].Name == opt['Name']:
                 logging.debug("attempted server creation with duplicate name")
                 return {'status': '400', 'message': '400 bad request. server name allready exist', 'failed': True}, 400
     
+    id = str(len(data['servers'])+1)
+
     if 'key' in request.headers:
         key = request.headers['key']
-        data['servers'].append(servLIB.server(request.headers['key'],**opt))
+        data['servers'][id] = servLIB.server(request.headers['key'],**opt)
     else:
         key = ''.join(random.choice(string.ascii_letters) for i in range(20))
-        data['servers'].append(servLIB.server(key,**opt))
+        data['servers'][id] = servLIB.server(key,**opt)
     logging.debug(data)
     save(data)
-    return {'status': 200, 'message': 'created server', 'failed': False,'output': {'key': key,'id': len(data['servers'])-1}},200
+    return {'status': 200, 'message': 'created server', 'failed': False,'output': {'key': key,'id': id}},200
 
 @app.route('/server/<index>', methods=['GET','DELETE'])
 def remove(index):
-    ind = []
-    try:
-        ind = data['servers'][int(index)]
-    except IndexError:
-        return {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
-    if ind == None:
-        return {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
-
-    if 'authToken' in request.headers:
-        if not ind.checkKey(request.headers['authToken']):
-            logging.debug('invalid auth token')
-            return {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403
-    else:
-        logging.debug('missing auth token')
-        return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
-    
+    info = getSrv(index)
+    if not info[0]:
+        return info[1], info[2]
+    ind = info[1]
     if request.method == 'GET':
         return {'status': 200, 'message': 'server dump', 'failed': False, 'output': {'dump': ind.__dict__()}}, 200
     elif request.method == 'DELETE':
-        data['servers'][int(index)] = None
+        data['servers'][index] = None
         save(data)
         return {'failed': False,'status': 200,'message': 'server deleted','output': {}}, 200
 
 @app.route('/server/<index>/<path:func>')
 def api(index,func):
-    ind = []
-    try:
-        ind = data['servers'][int(index)]
-    except IndexError:
-        return {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
-
-    if 'authToken' in request.headers:
-        if not ind.checkKey(request.headers['authToken']):
-            logging.debug('invalid auth token')
-            return {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403
-    else:
-        logging.debug('missing auth token')
-        return {'status': '403', 'message': '403 forbidden, "authToken" doesn\'t exist', 'failed': True}, 403
-
-    fun = ind
+    info = getSrv(index)
+    if not info[0]:
+        return info[1], info[2]
+    fun = info[1]
     try:
         for i in func.split('/'):
             fun = getattr(fun,i)
@@ -160,15 +160,17 @@ def api(index,func):
         return {'status': 404, 'message': '404 command not found', 'failed': True}, 404
     
     hasKwarg = False
-    Params = inspect.signature(func).parameters
+    Params = inspect.signature(fun).parameters
     args = []
     logging.debug(f'firing: {i}')
-    for arg in list(Params)[1:]:
+    for arg in list(Params):
         targ = Params[arg]
         if targ.kind == targ.VAR_KEYWORD:
+            print('hasKwarg')
             hasKwarg = True
         else:
             args.append(arg)
+    print('args', args)
     if hasKwarg:
         try:
             out = fun(**request.headers)

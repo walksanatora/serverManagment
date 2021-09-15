@@ -9,15 +9,16 @@ dock = docker.from_env()
 contImage=False
 containerName: str = ''
 for img in dock.images.list():
-        logging.debug(img.attrs['RepoTags'][0])
+        try:
+            logging.debug(img.attrs['RepoTags'][0])
+        except IndexError: continue
         if '-srv' in img.attrs['RepoTags'][0]:
             contImage=True
             if containerName == '':
-                containerName = img.attrs['RepoTags']
+                containerName = img.attrs['RepoTags'][0]
 if not contImage:
     logging.error('no image that has the -srv in it\'s name')
     exit()
-
 class server:
     HashedKey: str = ''
     State: int = 0

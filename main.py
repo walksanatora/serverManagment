@@ -85,14 +85,13 @@ def getSrv(index) -> servLIB.classes.server:
     try:
         ind = data['servers'][index]
     except:
-        for i in data['servers']:
+        for i in data['servers'].keys():
+            i = data['servers'][i]
             if i.Name == index:
                 ind = i
     if ind == None:
         return False, {'status': 400, 'message': 'invalid server number', 'failed': True}, 400
     if 'authToken' in request.headers:
-        print(hashlib.sha256(request.headers['authToken'].encode()).digest())
-        print(ind.HashedKey)
         if not ind.checkKey(request.headers['authToken']):
             logging.debug('invalid auth token')
             return False, {'status': '403', 'message': '403 forbidden, invalid "authToken"', 'failed': True}, 403

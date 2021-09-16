@@ -1,5 +1,6 @@
 import argparse, pickle, traceback, requests
-import random, string, json
+import random, string, json, inspect
+from servLIB import classes
 
 def confirmMsg(question):
 	resp = input(question + ': (y/n)').lower().strip()
@@ -72,12 +73,50 @@ def weirdParse(input):
 		args.append(i)
 	return args, kwargs
 
+class endPoint:
+	name: str
+	args: list
+	def __init__(self,func: str,args: list):
+		self.name = func
+		self.args = args
+	def fire(self,**kwargs) -> requests.models.Response:
+		if len(kwargs) == len(self.args):
+			hasAllKeys = True
+			for key in kwargs.keys():
+				if not key in self.args:
+					hasAllKeys = False
+
+	def __str__(self) -> str:
+		return f'{self.name}({",".join(self.args)})'
+
+_EndPointList_ = []
+
+d = dir(classes.server)
+d.reverse()
+for i in d:
+	if not i.startswith('_'):
+		attr = getattr(classes.server,i)
+		if inspect.isfunction(attr):
+			hasKwarg = False
+			Params = inspect.signature(attr).parameters
+			args = []
+			for arg in list(Params)[1:]:
+				targ = Params[arg]
+				if targ.kind == targ.VAR_KEYWORD:
+					hasKwarg = True
+				else:
+					args.append(arg)
+			if hasKwarg:
+				_EndPointList_.append(endPoint(i,args))
+				print(f'{i}({",".join(args)})')
+
 class REPL:
 	def help(*args,**kwargs):
 		helpTexts = {
 			'help': 'this command, takes one arg to show specific command',
 			'exit': 'exits the program',
 			'pas': 'prints the args passed to it',
+			'_endpoints': 'prints all found endpoints',
 			'_mykey': 'prints server auth key',
 			'_rawPoint': 'fires a endpoint raw using kwargs as headers uses are 0 as request type, arg 1 as endpoint'
 			}
@@ -87,6 +126,7 @@ class REPL:
 			try: print(helpTexts[args[0]])
 			except KeyError: 
 				for k in helpTexts.keys(): print(k, helpTexts[k])
+
 	def exit(*args,**kwargs):
 		raise KeyboardInterrupt
 	
@@ -94,6 +134,9 @@ class REPL:
 		print('kwargs: ',kwargs)
 		print('args: ',args)
 	
+	def _endpoints(*args,**kwargs):
+		for i in _EndPointList_: print(i)
+
 	def _mykey(*args,**kwargs):
 		print('server Key: ', sAuth)
 	

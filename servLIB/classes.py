@@ -165,3 +165,7 @@ class server:
         cont.remove(force=True)
         cont = self.__getContainer__()
         return {'failed': False,'status': 200,'message': 'container reset','output': {}}
+    
+    class __d__:
+        def test(**kwargs):
+            return {'failed': False,'message': 'test debug', 'output': {},'status': 200}

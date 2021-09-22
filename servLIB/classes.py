@@ -35,8 +35,7 @@ class server:
             setattr(self,i,kwargs[i])
         mnt = Mount('/mnt/data',f'{self.Name}VOL',type='volume')
         publicVOL = Mount('/mnt/public',f'publicData',type='volume')
-        d = dock.containers.run(self.Image,environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
-        while d.status == 'running': logging.debug('awaiting container exit')
+        d = dock.containers.create(self.Image,environment={'STARTUP': 'exit'}, detach=True, mounts=[mnt,publicVOL], name=f'{self.Name}')
         self.containerID = d.id
         self.HashedKey = hashlib.sha256(Key.encode()).digest()
     

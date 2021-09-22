@@ -79,13 +79,16 @@ class endPoint:
 	def __init__(self,func: str,args: list):
 		self.name = func
 		self.args = args
+	
 	def fire(self,**kwargs) -> requests.models.Response:
 		if len(kwargs) == len(self.args):
 			hasAllKeys = True
 			for key in kwargs.keys():
 				if not key in self.args:
 					hasAllKeys = False
-
+			if hasAllKeys:
+				return requests.get(f'{BASEURL}server/{sName}/{self.name}',headers=kwargs)
+	
 	def __str__(self) -> str:
 		return f'{self.name}({",".join(self.args)})'
 

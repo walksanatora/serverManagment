@@ -7,6 +7,7 @@ def confirmMsg(question):
 	if resp in ['yes','y','1','true']: return True
 	else: return False
 
+
 try:
     with open('data.pickle', 'rb') as p:
         data = pickle.load(p)
@@ -92,26 +93,50 @@ class endPoint:
 	def __str__(self) -> str:
 		return f'{self.name}({",".join(self.args)})'
 
-_EndPointList_ = []
+	def __repr__(self) -> str:
+		return f'<{self.name}({",".join(self.args)})>'
 
-d = dir(classes.server)
-d.reverse()
-for i in d:
-	if not i.startswith('_'):
-		attr = getattr(classes.server,i)
-		if inspect.isfunction(attr):
-			hasKwarg = False
-			Params = inspect.signature(attr).parameters
-			args = []
-			for arg in list(Params)[1:]:
-				targ = Params[arg]
-				if targ.kind == targ.VAR_KEYWORD:
-					hasKwarg = True
-				else:
-					args.append(arg)
-			if hasKwarg:
-				_EndPointList_.append(endPoint(i,args))
-				print(f'{i}({",".join(args)})')
+def recursiveDump(val):
+	if inspect.isfunction(val):
+		hasKwarg = False
+		Params = inspect.signature(val).parameters
+		args = []
+		for arg in list(Params)[1:]:
+			targ = Params[arg]
+			if targ.kind == targ.VAR_KEYWORD:
+				hasKwarg = True
+			else:
+				args.append(arg)
+		if hasKwarg:
+			return endPoint(val.__name__,args)
+	if inspect.isclass(val):
+		d = dir(val)
+		out = {}
+		for i in d:
+			if not i.startswith('_'):
+				out[i] = recursiveDump(getattr(val,i))
+		return out
+
+def recursiveRemoveNone(di:dict):
+	out = {}
+	for k in di.keys():
+		if not di[k] == None:
+			if type(di[k]) == type({}):
+				out[k] = recursiveRemoveNone(di[k])
+			else: out[k] = di[k]
+	return out
+
+def recursivePrintJoinedByFowardSlash(di:dict):
+	lis = []
+	for k in di.keys():
+		if type(di[k]) == type({}):
+			for i in recursivePrintJoinedByFowardSlash(di[k]):
+				lis.append(f'{k}/{i}')
+		else:
+			lis.append(di[k].name)
+	return lis
+
+_EndPointList_ = recursiveRemoveNone(recursiveDump(classes.server))
 
 class REPL:
 	def help(*args,**kwargs):
@@ -138,7 +163,11 @@ class REPL:
 		print('args: ',args)
 	
 	def _endpoints(*args,**kwargs):
-		for i in _EndPointList_: print(i)
+		for e in recursivePrintJoinedByFowardSlash(_EndPointList_):
+			d = _EndPointList_
+			for i in e.split('/'):
+				d = d[i]
+			print(f'path: {e}, function: {d}')
 
 	def _mykey(*args,**kwargs):
 		print('server Key: ', sAuth)

@@ -143,28 +143,29 @@ class server:
         self.Ports.pop(ContPort)
         return {'failed': False, 'status': 200,'message': 'removed port foward','output': {'ContPort': ContPort}}
     
-    def startServer(self,**kwargs):
-        cont = self.__getContainer__()
-        if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'server is allready running'}
-        env = self.Env
-        env['STARTUP'] = self.Startup
-        cont.exec_run(detach=True,environment=env)
-        return {'failed': False,'status':200,'message':'starting server','output':{}}
+    class container:
+            def startServer(self,**kwargs):
+                cont = self.__getContainer__()
+                if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'server is allready running'}
+                env = self.Env
+                env['STARTUP'] = self.Startup
+                cont.exec_run(detach=True,environment=env)
+                return {'failed': False,'status':200,'message':'starting server','output':{}}
 
-    def stopServer(self,**kwargs):
-        cont = self.__getContainer__()
-        if cont.status == 'running':
-            cont.kill()
-            return {'failed': False,'status':200,'message':'server killed/stopping','output':{}}
-        else:
-            return {'failed': True,'status':500,'message':'server isn\'t running'}
+            def stopServer(self,**kwargs):
+                cont = self.__getContainer__()
+                if cont.status == 'running':
+                    cont.kill()
+                    return {'failed': False,'status':200,'message':'server killed/stopping','output':{}}
+                else:
+                    return {'failed': True,'status':500,'message':'server isn\'t running'}
     
-    def reloadContainer(self,**kwargs):
-        cont = self.__getContainer__()
-        if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'container is running, cannot reload'}
-        cont.remove(force=True)
-        cont = self.__getContainer__()
-        return {'failed': False,'status': 200,'message': 'container reset','output': {}}
+            def reloadContainer(self,**kwargs):
+                cont = self.__getContainer__()
+                if cont.status == 'running': return {'failed': True,'status': 400, 'message': 'container is running, cannot reload'}
+                cont.remove(force=True)
+                cont = self.__getContainer__()
+                return {'failed': False,'status': 200,'message': 'container reset','output': {}}
     
     class __dbg__:
         def test(**kwargs):

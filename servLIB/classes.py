@@ -3,6 +3,8 @@ from docker.types import Mount
 import logging, hashlib
 import random, string
 
+from .exc import *
+
 from Utils import web
 
 dock = docker.from_env()
@@ -19,7 +21,7 @@ for img in dock.images.list():
                 containerName = img.attrs['RepoTags'][0]
 if not contImage:
     logging.error('no image that has the -srv in it\'s name')
-    exit()
+    raise MissingContainer
 
 class server:
     HashedKey: str = ''

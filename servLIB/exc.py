@@ -1,2 +1,2 @@
-class generic(Exception):
+class MissingContainer(Exception):
     pass

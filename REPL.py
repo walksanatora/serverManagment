@@ -1,6 +1,8 @@
+from Utils.dump import abstractFunction
 import argparse, pickle, traceback, requests
 import random, string, json, inspect
 from servLIB import classes
+import Utils
 
 def confirmMsg(question):
 	resp = input(question + ': (y/n)').lower().strip()
@@ -77,10 +79,11 @@ def weirdParse(input):
 class endPoint:
 	name: str
 	args: list
-	def __init__(self,func: str,args: list):
+	method: str
+	def __init__(self,func: str,args: list,method: str):
 		self.name = func
 		self.args = args
-	
+		self.method = method
 	def fire(self,**kwargs) -> requests.models.Response:
 		if len(kwargs) == len(self.args):
 			hasAllKeys = True
@@ -88,7 +91,7 @@ class endPoint:
 				if not key in self.args:
 					hasAllKeys = False
 			if hasAllKeys:
-				return requests.get(f'{BASEURL}server/{sName}/{self.name}',headers=kwargs)
+				return requests.request(self.method,f'{BASEURL}server/{sName}/{self.name}',headers=kwargs)
 	
 	def __str__(self) -> str:
 		return f'{self.name}({",".join(self.args)})'
@@ -96,47 +99,17 @@ class endPoint:
 	def __repr__(self) -> str:
 		return f'<{self.name}({",".join(self.args)})>'
 
-def recursiveDump(val):
-	if inspect.isfunction(val):
-		hasKwarg = False
-		Params = inspect.signature(val).parameters
-		args = []
-		for arg in list(Params)[1:]:
-			targ = Params[arg]
-			if targ.kind == targ.VAR_KEYWORD:
-				hasKwarg = True
-			else:
-				args.append(arg)
-		if hasKwarg:
-			return endPoint(val.__name__,args)
-	if inspect.isclass(val):
-		d = dir(val)
-		out = {}
-		for i in d:
-			if not i.startswith('_'):
-				out[i] = recursiveDump(getattr(val,i))
-		return out
+def migrate(abstract:dict) -> dict:
+	output={}
+	for k in abstract.keys():
+		if type(abstract[k]) == type({}):
+			output[k] = migrate(abstract[k])
+		elif type(abstract[k]) == type(Utils.abstractFunction('a',[])):
+			output[k] = endPoint(abstract[k].name,abstract[k].args,abstract[k].__dict__['method'])
+	return output
 
-def recursiveRemoveNone(di:dict):
-	out = {}
-	for k in di.keys():
-		if not di[k] == None:
-			if type(di[k]) == type({}):
-				out[k] = recursiveRemoveNone(di[k])
-			else: out[k] = di[k]
-	return out
-
-def recursivePrintJoinedByFowardSlash(di:dict):
-	lis = []
-	for k in di.keys():
-		if type(di[k]) == type({}):
-			for i in recursivePrintJoinedByFowardSlash(di[k]):
-				lis.append(f'{k}/{i}')
-		else:
-			lis.append(di[k].name)
-	return lis
-
-_EndPointList_ = recursiveRemoveNone(recursiveDump(classes.server))
+_EndPointList_ = Utils.removeNone(Utils.dump(classes.server))
+_EndPointList_ = migrate(_EndPointList_)
 
 class REPL:
 	def help(*args,**kwargs):
@@ -163,11 +136,11 @@ class REPL:
 		print('args: ',args)
 	
 	def _endpoints(*args,**kwargs):
-		for e in recursivePrintJoinedByFowardSlash(_EndPointList_):
+		for e in Utils.dictConvertString(_EndPointList_,'/'):
 			d = _EndPointList_
 			for i in e.split('/'):
 				d = d[i]
-			print(f'path: {e}, function: {d}')
+			print(f'path: {e}, function: {d}, method: {d.method}')
 
 	def _mykey(*args,**kwargs):
 		print('server Key: ', sAuth)

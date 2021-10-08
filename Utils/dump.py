@@ -14,7 +14,7 @@ class abstractFunction:
 		return self.__str__()
 	
 
-def dump(val,**kwargs):
+def dump(val,**kwargs) -> dict:
 	if inspect.isfunction(val):
 		hasKwarg = False
 		Params = inspect.signature(val).parameters

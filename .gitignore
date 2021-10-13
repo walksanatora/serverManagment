@@ -1,6 +1,6 @@
-*/__pycache__/*
-*.cpython-38.pyc
-*.cpython-39.pyc
+__pycache__/
 data.pickle
 log_servers.txt
 dist/
+main.spec
+build/

@@ -2,3 +2,5 @@ docker==5.0.2
 Flask==2.0.1
 Markdown==3.3.4
 requests==2.26.0
+staticx==0.13.2
+pyinstaller==4.5.1

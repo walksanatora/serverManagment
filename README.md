@@ -9,6 +9,8 @@ there are two ways, directly (reccommended)
 or by using the make file
 `make run`<br>
 
+also if you with to build to a binary install `patchelf` then run `make build`<br>
+
 there are also some flags you can find by running `python3 main.py -h`<br>
 the makefile also contains some commands for resetting data and testing endpoints
 

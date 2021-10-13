@@ -24,3 +24,7 @@ run:
 
 run-debug:
 	${py} main.py -d
+
+cbuild:
+	pyinstaller -F --paths=${python -m site --user-site} main.py
+	staticx dist/main dist/static --strip --loglevel=INFO

@@ -3,3 +3,4 @@
 *.cpython-39.pyc
 data.pickle
 log_servers.txt
+dist/

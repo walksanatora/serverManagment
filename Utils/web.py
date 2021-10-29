@@ -1,6 +1,8 @@
-from re import sub
-from flask import request
 import functools
+from re import sub
+
+from flask import request
+
 
 #decorators
 def requireMethod(method:str):

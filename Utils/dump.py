@@ -1,5 +1,6 @@
 import inspect
 
+
 class abstractFunction:
 	name: str
 	args: list

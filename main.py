@@ -1,9 +1,18 @@
 #!/usr/bin/env python3.9
-import argparse, hashlib
-import pickle, json, traceback
-import markdown, os, glob
-import random, string
-import logging, inspect
+import argparse
+import glob
+import hashlib
+import inspect
+import json
+import logging
+import os
+import pickle
+import random
+import string
+import traceback
+
+import markdown
+
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s - %(levelname)s] %(message)s',force=True)
 
 srvKey = ''.join(random.choice(string.ascii_letters) for i in range(20))
@@ -40,6 +49,7 @@ logging.debug(f'argv: {argv}, other: {other}')
 
 import docker
 from docker.types import Mount
+
 logging.getLogger(docker.__name__).setLevel(logging.WARNING)
 dock = docker.from_env()
 
@@ -79,6 +89,7 @@ save(data)
 
 import flask
 from flask import request, url_for
+
 app = flask.Flask(__name__)
 
 def getSrv(index) -> servLIB.classes.server:

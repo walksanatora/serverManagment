@@ -1,4 +1,5 @@
 import docker
+
 dock = docker.from_env()
 for i in dock.containers.list(all=True):
     if i.status == 'running':

@@ -1,11 +1,13 @@
+import hashlib
+import logging
+import random
+import string
+
 import docker
 from docker.types import Mount
-import logging, hashlib
-import random, string
+from Utils import web
 
 from .exc import *
-
-from Utils import web
 
 dock = docker.from_env()
 
